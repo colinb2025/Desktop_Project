@@ -1,0 +1,143 @@
+body {
+  margin: 0;
+  background: #111;
+  overflow: hidden;
+  font-family: sans-serif;
+  color: white;
+}
+
+/* Grid container */
+#grid {
+  position: relative; /* for overlay absolute positioning */
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 10px;
+  padding: 10px;
+  width: 100vw;
+  height: 100vh;
+  background: #111;
+  z-index: 0;
+}
+
+/* Grid overlay always in DOM but hidden by default using opacity */
+#grid-overlay {
+  position: fixed; /* or absolute */
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 10px;
+  pointer-events: none;
+  background: transparent;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10000; /* very high */
+}
+
+/* When body has dragging class, show overlay */
+body.dragging #grid-overlay {
+  opacity: 1;
+}
+
+.grid-cell {
+  border: 2px solid white;
+  border-radius: 5px;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* Widgets styling */
+.widget {
+  background: #222;
+  border-radius: 5px;
+  color: white;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  user-select: none;
+  padding: 5px;
+  box-sizing: border-box;
+  grid-column-end: span 1 !important;
+  grid-row-end: span 1 !important;
+}
+
+/* Plus button to toggle sidebar */
+#add-widget-btn {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  width: 40px;
+  height: 40px;
+  font-size: 32px;
+  background: #222;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 200;
+  user-select: none;
+}
+
+/* Sidebar styling */
+#sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 220px;
+  height: 100vh;
+  background: #1a1a1a;
+  color: white;
+  padding: 10px;
+  overflow-y: auto;
+  box-shadow: 2px 0 10px rgba(0,0,0,0.7);
+  z-index: 150;
+}
+
+#sidebar.hidden {
+  display: none;
+}
+
+/* Widgets inside sidebar */
+#unused-widgets .widget {
+  margin-bottom: 10px;
+  cursor: grab;
+}
+
+/* Delete dropzone */
+#delete-dropzone {
+  position: fixed;
+  bottom: 25vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 80px;
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+#delete-dropzone.visible {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+#delete-circle {
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 0, 0, 0.3);
+  border-radius: 50%;
+  color: darkred;
+  font-size: 56px;
+  line-height: 80px;
+  text-align: center;
+  user-select: none;
+  font-weight: bold;
+  box-shadow: 0 0 10px darkred;
+}
