@@ -63,8 +63,7 @@ body.dragging #grid-overlay {
   user-select: none;
   padding: 5px;
   box-sizing: border-box;
-  grid-column-end: span 1 !important;
-  grid-row-end: span 1 !important;
+  /* Removed forced grid span styles here */
 }
 
 /* Plus button to toggle sidebar */

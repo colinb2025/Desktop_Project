@@ -31,6 +31,10 @@ export function renderWidget(w, container) {
     el.style.gridRowStart = w.y + 1;
   }
 
+  // Apply width/height spans for grid
+  el.style.gridColumnEnd = `span ${w.w || 1}`;
+  el.style.gridRowEnd = `span ${w.h || 1}`;
+
   if (typeof w.render === "function") {
     w.render(el);
   } else {

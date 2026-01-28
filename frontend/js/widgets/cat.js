@@ -5,32 +5,36 @@ export const catWidget = {
   h: 1,
   render(el) {
     el.style.position = "relative";
-    el.style.minWidth = "200px";  // larger so cat can walk around
+    el.style.minWidth = "300px"; // increased width so background fits better
     el.style.minHeight = "100px";
     el.style.overflow = "hidden";
 
-    // Background image
+    // Background image stretched wider but height auto
     el.style.backgroundImage = "url('/js/widgets/sprites/cat_background.png')";
     el.style.backgroundRepeat = "no-repeat";
-    el.style.backgroundPosition = "bottom left";
-    el.style.backgroundSize = "contain";
+    el.style.backgroundPosition = "left calc(100%)";
+    el.style.backgroundSize = "100% auto"; // scale to container width, keep aspect ratio
+    el.style.imageRendering = "pixelated";
+    // stretch width to 300px, keep height auto
 
     const spriteWidth = 50;
     const spriteHeight = 50;
     const totalFrames = 5;
-    const frameDuration = 200;  // ms per frame
-    const moveSpeed = 1.5;      // pixels per frame update
+    const frameDuration = 200; // ms per frame
+    const moveSpeed = 1.5; // pixels per frame update
 
     const sprite = document.createElement("div");
     sprite.style.width = spriteWidth + "px";
     sprite.style.height = spriteHeight + "px";
     sprite.style.imageRendering = "pixelated";
-    sprite.style.backgroundImage = "url('/js/widgets/sprites/cat.png')";
+    sprite.style.backgroundImage = "url('/js/widgets/sprites/cat_no_bg.png')";
     sprite.style.backgroundRepeat = "no-repeat";
-    sprite.style.backgroundSize = `${spriteWidth * totalFrames}px ${spriteHeight}px`;
+    sprite.style.backgroundSize = `${
+      spriteWidth * totalFrames
+    }px ${spriteHeight}px`;
     sprite.style.position = "absolute";
     sprite.style.bottom = "5px";
-    sprite.style.left = "0px"; // start at left edge
+    sprite.style.left = "40px"; // start at left edge
 
     el.appendChild(sprite);
 
@@ -65,5 +69,5 @@ export const catWidget = {
     }
 
     setInterval(animate, frameDuration);
-  }
+  },
 };
