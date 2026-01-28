@@ -1,3 +1,7 @@
+// app.js
+
+import { allWidgets, renderWidget } from "./widgets.js";
+
 const grid = document.getElementById("grid");
 const addBtn = document.getElementById("add-widget-btn");
 const sidebar = document.getElementById("sidebar");
@@ -9,18 +13,14 @@ let dragging = null;
 let offsetX = 0;
 let offsetY = 0;
 
-// Example widgets pool
-const allWidgets = [
-  { id: "w1", type: "clock", w: 1, h: 1 },
-  { id: "w2", type: "weather", w: 1, h: 1 },
-  { id: "w3", type: "spotify", w: 1, h: 1 },
-  { id: "w4", type: "notes", w: 1, h: 1 },
-];
+let dragHoldTimeout = null;
+let dragStarted = false;
+let initialMousePos = null;
 
-// Placed widgets on grid with position info
-let placedWidgets = [];
+// Start with one widget placed for demo
+let placedWidgets = [{ ...allWidgets[0], x: 0, y: 0 }];
 
-// Initialize overlay grid cells (run once)
+// Initialize the overlay grid cells
 function initOverlay() {
   overlay.innerHTML = "";
   for (let i = 0; i < 24; i++) {
@@ -31,55 +31,12 @@ function initOverlay() {
 }
 initOverlay();
 
-// Render widgets either in grid or sidebar
-function renderWidget(w, container) {
-  const el = document.createElement("div");
-  el.className = "widget";
-  el.dataset.id = w.id;
-
-  if (container === grid) {
-    el.style.gridColumnStart = w.x + 1;
-    el.style.gridRowStart = w.y + 1;
-  }
-
-  if (w.type === "clock") startClock(el);
-  else el.textContent = w.type;
-
-  el.onmousedown = e => {
-    dragging = { el, w, fromSidebar: container === unusedWidgetsContainer };
-
-    // Add class to body to show overlay
-    document.body.classList.add("dragging");
-
-    const rect = el.getBoundingClientRect();
-
-    offsetX = e.clientX - rect.left;
-    offsetY = e.clientY - rect.top;
-
-    el.style.position = "absolute";
-    el.style.zIndex = "2000";
-    el.style.left = rect.left + "px";
-    el.style.top = rect.top + "px";
-    el.style.width = rect.width + "px";
-    el.style.height = rect.height + "px";
-    el.style.opacity = 0.6;
-
-    document.body.appendChild(el);
-
-    deleteDropzone.classList.add("visible");
-
-    e.preventDefault();
-  };
-
-  container.appendChild(el);
-}
-
 function renderAll() {
   grid.innerHTML = "";
   unusedWidgetsContainer.innerHTML = "";
   deleteDropzone.classList.remove("visible");
 
-  // Render placed widgets on grid
+  // Render widgets placed on grid
   placedWidgets.forEach(w => renderWidget(w, grid));
 
   // Render unused widgets in sidebar
@@ -88,20 +45,55 @@ function renderAll() {
   );
   unused.forEach(w => renderWidget(w, unusedWidgetsContainer));
 }
-
-// For demo, start with one widget placed
-placedWidgets = [{ ...allWidgets[0], x: 0, y: 0 }];
-
 renderAll();
 
-document.onmousemove = e => {
-  if (!dragging) return;
+// Handle dragging mousedown from widgets with long press
+document.body.addEventListener("mousedown", e => {
+  const target = e.target.closest(".widget");
+  if (!target) return;
 
-  dragging.el.style.left = e.clientX - offsetX + "px";
-  dragging.el.style.top = e.clientY - offsetY + "px";
-};
+  initialMousePos = { x: e.clientX, y: e.clientY };
+  dragStarted = false;
 
-document.onmouseup = e => {
+  const id = target.dataset.id;
+  const w =
+    placedWidgets.find(w => w.id === id) || allWidgets.find(w => w.id === id);
+  if (!w) return;
+
+  dragHoldTimeout = setTimeout(() => {
+    dragStarted = true;
+
+    dragging = { el: target, w, fromSidebar: target.parentElement === unusedWidgetsContainer };
+
+    document.body.classList.add("dragging");
+
+    const rect = target.getBoundingClientRect();
+
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    target.style.position = "absolute";
+    target.style.zIndex = "2000";
+    target.style.left = rect.left + "px";
+    target.style.top = rect.top + "px";
+    target.style.width = rect.width + "px";
+    target.style.height = rect.height + "px";
+    target.style.opacity = 0.6;
+
+    document.body.appendChild(target);
+
+    deleteDropzone.classList.add("visible");
+
+  }, 1000);
+});
+
+document.body.addEventListener("mouseup", e => {
+  // Cancel drag hold if mouse released before drag starts
+  if (dragHoldTimeout) {
+    clearTimeout(dragHoldTimeout);
+    dragHoldTimeout = null;
+  }
+
   if (!dragging) return;
 
   const gridRect = grid.getBoundingClientRect();
@@ -122,7 +114,6 @@ document.onmouseup = e => {
     e.clientY <= dropzoneRect.bottom;
 
   if (insideDeleteZone) {
-    // Remove widget if dragged from grid
     if (!dragging.fromSidebar) {
       placedWidgets = placedWidgets.filter(w => w.id !== dragging.w.id);
     }
@@ -148,24 +139,33 @@ document.onmouseup = e => {
   }
 
   dragging.el.remove();
-
-  // Remove dragging class to hide overlay
   document.body.classList.remove("dragging");
 
   renderAll();
   dragging = null;
-};
+});
+
+document.body.addEventListener("mousemove", e => {
+  if (!dragHoldTimeout && !dragStarted) return;
+
+  // Cancel drag hold if mouse moves too far before drag starts
+  if (!dragStarted && initialMousePos) {
+    const distX = Math.abs(e.clientX - initialMousePos.x);
+    const distY = Math.abs(e.clientY - initialMousePos.y);
+    if (distX > 5 || distY > 5) {
+      clearTimeout(dragHoldTimeout);
+      dragHoldTimeout = null;
+      initialMousePos = null;
+    }
+  }
+
+  if (!dragging) return;
+
+  dragging.el.style.left = e.clientX - offsetX + "px";
+  dragging.el.style.top = e.clientY - offsetY + "px";
+});
 
 // Toggle sidebar on plus button click
 addBtn.onclick = () => {
   sidebar.classList.toggle("hidden");
 };
-
-// Clock widget helper
-function startClock(el) {
-  function tick() {
-    el.textContent = new Date().toLocaleTimeString();
-  }
-  tick();
-  setInterval(tick, 1000);
-}

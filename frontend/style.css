@@ -141,3 +141,18 @@ body.dragging #grid-overlay {
   font-weight: bold;
   box-shadow: 0 0 10px darkred;
 }
+
+.widget button {
+  background: #333;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  cursor: pointer;
+  font-size: 14px;
+  user-select: none;
+}
+
+.widget button:hover {
+  background: #555;
+}
