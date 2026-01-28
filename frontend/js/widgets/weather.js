@@ -3,8 +3,8 @@ import { WEATHER_API_KEY } from "../config.js";
 export const weatherWidget = {
   id: "w7",
   type: "weather",
-  w: 1,   // 1 column wide
-  h: 2,   // 2 rows tall
+  w: 1,
+  h: 2,
   render(el) {
     el.style.display = "flex";
     el.style.flexDirection = "column";
@@ -15,7 +15,7 @@ export const weatherWidget = {
     el.style.color = "white";
     el.style.fontFamily = "sans-serif";
 
-    // Header elements
+    // Header container
     const header = document.createElement("div");
     header.style.display = "flex";
     header.style.justifyContent = "space-between";
@@ -29,26 +29,30 @@ export const weatherWidget = {
     const nowBox = document.createElement("div");
     nowBox.style.textAlign = "right";
 
-    const current = document.createElement("div");
-    current.style.fontSize = "28px";
-    current.style.fontWeight = "700";
-    current.style.lineHeight = "1";
+    const currentTemp = document.createElement("div");
+    currentTemp.style.fontSize = "28px";
+    currentTemp.style.fontWeight = "700";
+    currentTemp.style.lineHeight = "1";
+
+    const feelsLike = document.createElement("div");
+    feelsLike.style.fontSize = "12px";
+    feelsLike.style.opacity = "0.6";
+    feelsLike.style.marginTop = "2px";
 
     const condition = document.createElement("div");
     condition.style.fontSize = "14px";
     condition.style.opacity = "0.7";
-    condition.style.marginTop = "2px";
+    condition.style.marginTop = "4px";
 
     const sunEvent = document.createElement("div");
     sunEvent.style.fontSize = "12px";
     sunEvent.style.opacity = "0.7";
     sunEvent.style.marginTop = "6px";
 
-    nowBox.append(current, condition, sunEvent);
-
+    nowBox.append(currentTemp, feelsLike, condition, sunEvent);
     header.append(city, nowBox);
 
-    // Hourly forecast container (vertical stacking now)
+    // Hourly forecast container (vertical)
     const hours = document.createElement("div");
     hours.style.display = "flex";
     hours.style.flexDirection = "column";
@@ -56,7 +60,16 @@ export const weatherWidget = {
     hours.style.marginTop = "12px";
     hours.style.gap = "6px";
 
-    el.append(header, hours);
+    // Daily forecast container
+    const dailyForecast = document.createElement("div");
+    dailyForecast.style.marginTop = "12px";
+    dailyForecast.style.fontSize = "12px";
+    dailyForecast.style.opacity = "0.8";
+    dailyForecast.style.display = "flex";
+    dailyForecast.style.flexDirection = "column";
+    dailyForecast.style.gap = "4px";
+
+    el.append(header, hours, dailyForecast);
 
     // Fallback mock data
     const fallbackMock = [
@@ -71,18 +84,23 @@ export const weatherWidget = {
     function clearHours() {
       while (hours.firstChild) hours.removeChild(hours.firstChild);
     }
+    function clearDaily() {
+      while (dailyForecast.firstChild) dailyForecast.removeChild(dailyForecast.firstChild);
+    }
 
-    function iconToEmoji(iconUrl) {
+    function iconToEmoji(iconUrl, conditionText = "") {
       if (!iconUrl) return "❓";
-      if (iconUrl.includes("sunny")) return "☀️";
-      if (iconUrl.includes("clear")) return "☀️";
-      if (iconUrl.includes("partlycloudy")) return "⛅";
-      if (iconUrl.includes("cloudy")) return "☁️";
-      if (iconUrl.includes("rain")) return "🌧️";
-      if (iconUrl.includes("snow")) return "❄️";
-      if (iconUrl.includes("storm")) return "⛈️";
-      if (iconUrl.includes("fog")) return "🌫️";
-      if (iconUrl.includes("night")) return "🌙";
+      const iconLower = iconUrl.toLowerCase();
+      const condLower = conditionText.toLowerCase();
+      if (iconLower.includes("sunny") || condLower.includes("sunny")) return "☀️";
+      if (iconLower.includes("clear") || condLower.includes("clear")) return "☀️";
+      if (iconLower.includes("partlycloudy") || condLower.includes("partly cloudy")) return "⛅";
+      if (iconLower.includes("cloudy") || condLower.includes("cloudy")) return "☁️";
+      if (iconLower.includes("rain") || condLower.includes("rain")) return "🌧️";
+      if (iconLower.includes("snow") || condLower.includes("snow")) return "❄️";
+      if (iconLower.includes("storm") || condLower.includes("storm")) return "⛈️";
+      if (iconLower.includes("fog") || condLower.includes("fog")) return "🌫️";
+      if (iconLower.includes("night") || condLower.includes("night")) return "🌙";
       return "❓";
     }
 
@@ -101,13 +119,12 @@ export const weatherWidget = {
         city.textContent = `${data.location.name}, ${data.location.region}`;
 
         const curr = data.current;
-        current.textContent = `${Math.round(curr.temp_f)}°F`;
+        currentTemp.textContent = `${Math.round(curr.temp_f)}°F`;
+        feelsLike.textContent = `Feels like ${Math.round(curr.feelslike_f)}°F`;
         condition.textContent = curr.condition.text;
 
+        // Next sunrise/sunset
         const localTime = new Date(data.location.localtime);
-        const sunriseToday = data.forecast.forecastday[0].astro.sunrise;
-        const sunsetToday = data.forecast.forecastday[0].astro.sunset;
-        const sunriseTomorrow = data.forecast.forecastday[1].astro.sunrise;
 
         function parseTime(tstr) {
           const [time, ampm] = tstr.split(" ");
@@ -123,6 +140,11 @@ export const weatherWidget = {
           return d;
         }
 
+        const days = data.forecast.forecastday;
+        const sunriseToday = days[0].astro.sunrise;
+        const sunsetToday = days[0].astro.sunset;
+        const sunriseTomorrow = days[1].astro.sunrise;
+
         const sunriseDate = getDateForTime(localTime, sunriseToday);
         const sunsetDate = getDateForTime(localTime, sunsetToday);
 
@@ -136,15 +158,16 @@ export const weatherWidget = {
         }
         sunEvent.textContent = `${nextSun.type} at ${nextSun.time}`;
 
+        // Next 3 hours forecast
         const nowEpoch = curr.last_updated_epoch;
-        const todayHours = data.forecast.forecastday[0].hour;
+        const todayHours = days[0].hour;
         const next3Hours = todayHours
-          .filter((h) => h.time_epoch > nowEpoch)
+          .filter(h => h.time_epoch > nowEpoch)
           .slice(0, 3);
 
         clearHours();
 
-        function addHourRow(label, tempF, iconUrl) {
+        function addHourRow(label, tempF, iconUrl, condText = "") {
           const row = document.createElement("div");
           row.style.display = "flex";
           row.style.justifyContent = "space-between";
@@ -155,7 +178,7 @@ export const weatherWidget = {
           labelDiv.textContent = label;
 
           const iconDiv = document.createElement("div");
-          iconDiv.textContent = iconToEmoji(iconUrl);
+          iconDiv.textContent = iconToEmoji(iconUrl, condText);
           iconDiv.style.fontSize = "18px";
 
           const tempDiv = document.createElement("div");
@@ -165,25 +188,67 @@ export const weatherWidget = {
           hours.appendChild(row);
         }
 
-        addHourRow("Now", curr.temp_f, curr.condition.icon);
+        addHourRow("Now", curr.temp_f, curr.condition.icon, curr.condition.text);
 
-        next3Hours.forEach((h) =>
+        next3Hours.forEach(h =>
           addHourRow(
             new Date(h.time).toLocaleTimeString([], { hour: "numeric", hour12: true }),
             h.temp_f,
-            h.condition.icon
+            h.condition.icon,
+            h.condition.text
           )
         );
+
+        // Show daily forecast (avg condition, high/low)
+        clearDaily();
+
+        days.forEach(day => {
+          const row = document.createElement("div");
+          row.style.display = "flex";
+          row.style.justifyContent = "space-between";
+          row.style.alignItems = "center";
+          row.style.gap = "6px";
+
+          const dateDiv = document.createElement("div");
+          dateDiv.textContent = new Date(day.date).toLocaleDateString(undefined, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          });
+          dateDiv.style.minWidth = "70px";
+
+          const iconDiv = document.createElement("div");
+          iconDiv.textContent = iconToEmoji(day.day.condition.icon, day.day.condition.text);
+          iconDiv.style.fontSize = "18px";
+          iconDiv.style.minWidth = "25px";
+
+          const condDiv = document.createElement("div");
+          condDiv.textContent = day.day.condition.text;
+          condDiv.style.flexGrow = "1";
+          condDiv.style.textAlign = "center";
+          condDiv.style.fontSize = "12px";
+
+          const highLowDiv = document.createElement("div");
+          highLowDiv.textContent = `${Math.round(day.day.maxtemp_f)}° / ${Math.round(day.day.mintemp_f)}°`;
+          highLowDiv.style.minWidth = "60px";
+          highLowDiv.style.textAlign = "right";
+          highLowDiv.style.fontSize = "12px";
+
+          row.append(dateDiv, iconDiv, condDiv, highLowDiv);
+          dailyForecast.appendChild(row);
+        });
       } catch (error) {
         console.error("Weather widget error:", error);
 
         city.textContent = "Charlottesville, VA";
-        current.textContent = `${fallbackMock[0].t}°`;
+        currentTemp.textContent = `${fallbackMock[0].t}°`;
+        feelsLike.textContent = "";
         condition.textContent = "Sunny";
         sunEvent.textContent = "";
-
         clearHours();
-        fallbackMock.forEach((m) => {
+        clearDaily();
+
+        fallbackMock.forEach(m => {
           const row = document.createElement("div");
           row.style.display = "flex";
           row.style.justifyContent = "space-between";
